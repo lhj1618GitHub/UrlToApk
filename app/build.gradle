@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-def appUrl = project.hasProperty('APP_URL') ? project.property('APP_URL') : 'https://gh-proxy.org/https://raw.githubusercontent.com/lhj1618GitHub/GGKD'
+def appUrl = project.hasProperty('APP_URL') ? project.property('APP_URL') : 'https://gh-proxy.at9.net/'
 def appName = project.hasProperty('APP_NAME') ? project.property('APP_NAME') : 'WebView App'
 def themeColor = project.hasProperty('THEME_COLOR') ? project.property('THEME_COLOR') : '#2196F3'
 def userAgent = project.hasProperty('USER_AGENT') ? project.property('USER_AGENT') : 'WppWebViewApp/1.0'
