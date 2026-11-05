@@ -1,333 +1,76 @@
-name: Build Android APK
+# 由 githup App 生成（Android Gradle）· 2026-11-05
+# 修改说明：首次生成，未做改动
+# 每个步骤都带注释，可直接修改；改完请在上方填写修改说明再保存。
+
+name: Build APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # 允许在 App 里点「手动触发构建」
     inputs:
-      app_url:
-        description: "网站URL (例如: https://www.example.com)"
-        required: true
-        type: string
       app_name:
-        description: "应用名称"
-        required: true
-        type: string
-        default: "My App"
-      package_name:
-        description: "应用包名 (例如: com.example.app)"
-        required: true
-        type: string
-        default: "com.webview.app"
-      theme_color:
-        description: "主题色 (例如: #1989fa)"
-        required: true
-        type: string
-        default: "#1989fa"
-      app_icon_url:
-        description: "应用图标URL (公开可访问的PNG图片地址，可选)"
-        required: false
-        type: string
-        default: "https://wmimg.com/i/1792/2025/12/692e96b4c100f.png"
-      splash_image_url:
-        description: "首屏图片URL (公开可访问的图片地址，可选，填写则使用该图片作为首屏，不填则使用应用图标)"
-        required: false
-        type: string
-      cert_cn:
-        description: "证书姓名 (CN)"
-        required: false
-        type: string
-        default: "wppApk"
-      cert_ou:
-        description: "证书组织单位 (OU)"
-        required: false
-        type: string
-        default: "hangzhoushiqi"
-      cert_o:
-        description: "证书组织 (O)"
-        required: false
-        type: string
-        default: "shiqi"
-      cert_l:
-        description: "证书城市 (L)"
-        required: false
-        type: string
-        default: "zhejiang"
-      cert_st:
-        description: "证书省份 (ST)"
-        required: false
-        type: string
-        default: "hangzhou"
-      cert_c:
-        description: "证书国家 (C)"
-        required: false
-        type: string
-        default: "CN"
-      user_agent:
-        description: "自定义User-Agent (可选，将附加到默认User-Agent后面)"
-        required: false
-        type: string
-        default: "WppWebViewApp/1.0"
+        description: 安装包名称
+        default: 'a'
+      version_name:
+        description: 版本号（versionName）
+        default: '0.0.1'
+      version_code:
+        description: 版本代号（versionCode，整数）
+        default: '1'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      BUILD_TOOLS_VERSION: "34.0.0"
-
+    runs-on: ubuntu-latest   # GitHub 免费提供的 Linux 构建机
     steps:
-      - name: Checkout repository
+      # 1. 把仓库代码拉到构建机上
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate inputs
-        run: |
-          echo "🔍 验证输入参数..."
-          VALIDATION_FAILED=false
-
-          # Validate URL format
-          APP_URL="${{ github.event.inputs.app_url }}"
-          if [[ ! "$APP_URL" =~ ^https?:// ]]; then
-            echo "❌ 错误: 网站URL格式无效，必须以 http:// 或 https:// 开头"
-            echo "   当前值: $APP_URL"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ 网站URL格式有效: $APP_URL"
-          fi
-
-          # Validate app name (not empty)
-          APP_NAME="${{ github.event.inputs.app_name }}"
-          if [ -z "$APP_NAME" ]; then
-            echo "❌ 错误: 应用名称不能为空"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ 应用名称有效: $APP_NAME"
-          fi
-
-          # Validate package name format (must be valid Java package name)
-          PACKAGE_NAME="${{ github.event.inputs.package_name }}"
-          if [[ ! "$PACKAGE_NAME" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$ ]]; then
-            echo "❌ 错误: 包名格式无效，必须是有效的Java包名格式 (例如: com.example.app)"
-            echo "   当前值: $PACKAGE_NAME"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ 包名格式有效: $PACKAGE_NAME"
-          fi
-
-          # Validate theme color format (must be valid hex color, 3 or 6 digits)
-          THEME_COLOR="${{ github.event.inputs.theme_color }}"
-          if [[ ! "$THEME_COLOR" =~ ^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$ ]]; then
-            echo "❌ 错误: 主题色格式无效，必须是有效的十六进制颜色代码 (例如: #2196F3 或 #FFF)"
-            echo "   当前值: $THEME_COLOR"
-            VALIDATION_FAILED=true
-          else
-            echo "✅ 主题色格式有效: $THEME_COLOR"
-          fi
-
-          # Validate app icon URL if provided
-          APP_ICON_URL="${{ github.event.inputs.app_icon_url }}"
-          if [ -n "$APP_ICON_URL" ]; then
-            if [[ ! "$APP_ICON_URL" =~ ^https?:// ]]; then
-              echo "❌ 错误: 应用图标URL格式无效，必须以 http:// 或 https:// 开头"
-              echo "   当前值: $APP_ICON_URL"
-              VALIDATION_FAILED=true
-            else
-              echo "✅ 应用图标URL格式有效: $APP_ICON_URL"
-            fi
-          fi
-
-          # Validate splash image URL if provided
-          SPLASH_IMAGE_URL="${{ github.event.inputs.splash_image_url }}"
-          if [ -n "$SPLASH_IMAGE_URL" ]; then
-            if [[ ! "$SPLASH_IMAGE_URL" =~ ^https?:// ]]; then
-              echo "❌ 错误: 首屏图片URL格式无效，必须以 http:// 或 https:// 开头"
-              echo "   当前值: $SPLASH_IMAGE_URL"
-              VALIDATION_FAILED=true
-            else
-              echo "✅ 首屏图片URL格式有效: $SPLASH_IMAGE_URL"
-            fi
-          fi
-
-          # Check if any validation failed
-          if [ "$VALIDATION_FAILED" = true ]; then
-            echo ""
-            echo "❌ 输入验证失败，请检查上述错误并重新提交"
-            exit 1
-          fi
-
-          echo ""
-          echo "✅ 所有输入参数验证通过"
-
+      # 2. 准备 JDK（Gradle 8 需要 17，老项目可改成 11）
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
-          distribution: "temurin"
-          cache: gradle
+          distribution: temurin
+          java-version: '17'
 
+      # 3. gradlew 必须可执行，否则报 Permission denied
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x ./gradlew || true
 
-      - name: Process custom icon
-        if: ${{ github.event.inputs.app_icon_url != '' }}
+      # 4. 改成你在 App 里填的版本号（同时兼容 build.gradle 与 .kts）
+      - name: Set version
+        env:
+          VN: ${{ github.event.inputs.version_name }}
+          VC: ${{ github.event.inputs.version_code }}
         run: |
-          # Download icon from URL with security options
-          curl -L --fail --max-time 30 --max-filesize 10485760 -o /tmp/app_icon.png "${{ github.event.inputs.app_icon_url }}"
+          for f in $(find . -name "build.gradle" -o -name "build.gradle.kts"); do
+            sed -i -E "s/versionName.*/versionName = \"$VN\"/" "$f"
+            sed -i -E "s/versionCode.*/versionCode = $VC/" "$f"
+          done
+          echo "版本已设为 $VN ($VC)"
 
-          # Validate PNG file format
-          if ! file /tmp/app_icon.png | grep -q "PNG image"; then
-            echo "Error: Invalid PNG image format"
-            exit 1
+      # 5. 构建；命令可以按需改，例如只编某个模块 :app:assembleDebug
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      # 把产物改成你指定的安装包名称
+      - name: Rename APK
+        env:
+          NAME: ${{ github.event.inputs.app_name }}
+          VN: ${{ github.event.inputs.version_name }}
+        run: |
+          APK=$(find . -name "*.apk" | head -1)
+          if [ -n "$APK" ]; then
+            D=$(dirname "$APK")
+            mv "$APK" "$D/$NAME-$VN.apk"
+            echo "产物: $D/$NAME-$VN.apk"
           fi
 
-          # Keep the full-resolution source for the splash screen. The launcher
-          # mipmap assets below are intentionally much smaller (48-192 px).
-          mkdir -p app/src/main/assets
-          cp /tmp/app_icon.png app/src/main/assets/splash_icon.png
-
-          # Install ImageMagick for image resizing
-          sudo apt-get update && sudo apt-get install -y imagemagick
-
-          # Resize icons for different densities
-          convert /tmp/app_icon.png -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert /tmp/app_icon.png -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-          convert /tmp/app_icon.png -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png
-          convert /tmp/app_icon.png -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-          convert /tmp/app_icon.png -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          convert /tmp/app_icon.png -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-          convert /tmp/app_icon.png -resize 144x144 app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          convert /tmp/app_icon.png -resize 144x144 app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-          convert /tmp/app_icon.png -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          convert /tmp/app_icon.png -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-
-      - name: Process splash image
-        if: ${{ github.event.inputs.splash_image_url != '' }}
-        run: |
-          # Create assets directory if not exists
-          mkdir -p app/src/main/assets
-
-          # Download splash image from URL with security options
-          curl -L --fail --max-time 60 --max-filesize 20971520 -o /tmp/splash_image_raw "${{ github.event.inputs.splash_image_url }}"
-
-          # Validate image file format
-          FILE_TYPE=$(file /tmp/splash_image_raw)
-          if echo "$FILE_TYPE" | grep -q "PNG image"; then
-            cp /tmp/splash_image_raw app/src/main/assets/splash_image.png
-          elif echo "$FILE_TYPE" | grep -q "JPEG image"; then
-            # Install ImageMagick if not already installed
-            if ! command -v convert &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y imagemagick
-            fi
-            # Convert JPEG to PNG
-            convert /tmp/splash_image_raw app/src/main/assets/splash_image.png
-          else
-            echo "Error: Invalid image format. Only PNG and JPEG are supported."
-            exit 1
-          fi
-
-          echo "Splash image processed successfully"
-
-      - name: Build Release APK
-        run: |
-          ./gradlew assembleRelease \
-            -PAPP_URL="${{ github.event.inputs.app_url }}" \
-            -PAPP_NAME="${{ github.event.inputs.app_name }}" \
-            -PPACKAGE_NAME="${{ github.event.inputs.package_name }}" \
-            -PTHEME_COLOR="${{ github.event.inputs.theme_color }}" \
-            -PUSER_AGENT="${{ github.event.inputs.user_agent }}"
-
-      - name: Generate signing keystore
-        run: |
-          # Generate a new keystore with user-provided certificate info
-          keytool -genkey -v \
-            -keystore /tmp/release.keystore \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -alias release-key \
-            -storepass android123 \
-            -keypass android123 \
-            -dname "CN=${{ github.event.inputs.cert_cn }}, OU=${{ github.event.inputs.cert_ou }}, O=${{ github.event.inputs.cert_o }}, L=${{ github.event.inputs.cert_l }}, ST=${{ github.event.inputs.cert_st }}, C=${{ github.event.inputs.cert_c }}"
-
-      - name: Sign APK with production key
-        id: sign_app
-        run: |
-          # Sanitize app name for filename
-          SAFE_NAME=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_' | tr -cd '[:alnum:]_-')
-          # Use default name if sanitized name is empty (e.g., for non-ASCII app names)
-          if [ -z "$SAFE_NAME" ]; then
-            SAFE_NAME="app-release"
-          fi
-
-          # Find the unsigned APK
-          UNSIGNED_APK="app/build/outputs/apk/release/app-release-unsigned.apk"
-
-          # Align the APK
-          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}/zipalign -v -p 4 \
-            "$UNSIGNED_APK" \
-            "app/build/outputs/apk/release/app-release-aligned.apk"
-
-          # Sign the APK with production key
-          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}/apksigner sign \
-            --ks /tmp/release.keystore \
-            --ks-key-alias release-key \
-            --ks-pass pass:android123 \
-            --key-pass pass:android123 \
-            --out "app/build/outputs/apk/release/${SAFE_NAME}.apk" \
-            "app/build/outputs/apk/release/app-release-aligned.apk"
-
-          # Verify the signature
-          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}/apksigner verify "app/build/outputs/apk/release/${SAFE_NAME}.apk" \
-            || { echo "APK signature verification failed"; exit 1; }
-
-          echo "signed=release" >> $GITHUB_OUTPUT
-          echo "APK is signed with production key (CN=${{ github.event.inputs.cert_cn }}, OU=${{ github.event.inputs.cert_ou }}, O=${{ github.event.inputs.cert_o }}, L=${{ github.event.inputs.cert_l }}, ST=${{ github.event.inputs.cert_st }}, C=${{ github.event.inputs.cert_c }})"
-
-          # Clean up intermediate and temporary files
-          rm -f "app/build/outputs/apk/release/app-release-unsigned.apk"
-          rm -f "app/build/outputs/apk/release/app-release-aligned.apk"
-          rm -f "/tmp/release.keystore"
-
+      # 上传产物：构建完后在 App 里点开这条运行记录即可下载、自动安装
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-apk
-          path: app/build/outputs/apk/release/*.apk
-          retention-days: 30
-
-      - name: Create Release
-        if: success()
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: "${{ github.event.inputs.app_name }} - Build ${{ github.run_number }}"
-          body: |
-            ## 应用信息
-            - **应用名称**: ${{ github.event.inputs.app_name }}
-            - **包名**: ${{ github.event.inputs.package_name }}
-            - **URL**: ${{ github.event.inputs.app_url }}
-            - **主题色**: ${{ github.event.inputs.theme_color }}
-            - **User-Agent**: ${{ github.event.inputs.user_agent }}
-            - **首屏图片**: ${{ github.event.inputs.splash_image_url != '' && '自定义图片' || '应用图标' }}
-            - **签名状态**: 正式签名
-
-            ## 证书信息
-            - CN=${{ github.event.inputs.cert_cn }}
-            - OU=${{ github.event.inputs.cert_ou }}
-            - O=${{ github.event.inputs.cert_o }}
-            - L=${{ github.event.inputs.cert_l }}
-            - ST=${{ github.event.inputs.cert_st }}
-            - C=${{ github.event.inputs.cert_c }}
-
-            ## 功能特性
-            - WebView 加载指定URL
-            - 首屏加载动画
-            - 返回键二次确认退出（Toast提示）
-            - JavaScript Bridge 原生功能调用
-
-            ## 安装说明
-            ✅ 此APK已使用正式签名。
-          files: app/build/outputs/apk/release/*.apk
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ github.event.inputs.app_name }}-${{ github.event.inputs.version_name }}
+          path: |
+            **/build/outputs/apk/**/*.apk
+            **/build/outputs/bundle/**/*.aab
+          if-no-files-found: error
