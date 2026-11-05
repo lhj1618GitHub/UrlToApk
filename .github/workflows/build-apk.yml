@@ -9,10 +9,10 @@ on:
     inputs:
       app_name:
         description: 安装包名称
-        default: 'a'
+        default: 'app'
       version_name:
         description: 版本号（versionName）
-        default: '0.0.1'
+        default: '1.0.0'
       version_code:
         description: 版本代号（versionCode，整数）
         default: '1'
